@@ -80,28 +80,30 @@
 #define NANO_TEST_STRINGIFY(X) NANO_TEST_STR(X)
 #define NANO_TEST_STR(X) #X
 
-NANO_TEST_CLANG_PUSH_WARNING("-Wvariadic-macros")
-NANO_TEST_CLANG_PUSH_WARNING("-Wc++98-compat-pedantic")
+NANO_TEST_CLANG_DIAGNOSTIC_PUSH()
+NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wvariadic-macros")
+NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wc++98-compat-pedantic")
 
-#define NANO_TEST_GET_NTH_ARG(_1, _2, _3, _4, _5, _6, N, ...) N
+#define NANO_TEST_GET_NTH_ARG(_1, _2, _3, _4, NAME, ...) NAME
+
+#define NANO_TEST_EXPAND(X) X
+
+#define TEST_CASE(...)                                                                                                 \
+  NANO_TEST_EXPAND(NANO_TEST_GET_NTH_ARG(                                                                              \
+      __VA_ARGS__, NANO_TEST_CASE_4, NANO_TEST_CASE_3, NANO_TEST_CASE_2, NANO_TEST_CASE_1)(__VA_ARGS__))
+
+#define NANO_TEST_CASE_2(Group, Name) NANO_TEST_CASE_IMPL(Group, Name, "", "", 0)
+#define NANO_TEST_CASE_3(Group, Name, Desc) NANO_TEST_CASE_IMPL(Group, Name, Desc, "", 0)
+#define NANO_TEST_CASE_4(Group, Name, Desc, flags) NANO_TEST_CASE_IMPL(Group, Name, Desc, "", flags)
+
+NANO_TEST_CLANG_DIAGNOSTIC_POP()
 
 ///
 #define NANO_TEST_MAIN()                                                                                               \
   int main(int argc, const char* argv[]) { return NANO_NAMESPACE::test::run(argc, argv); }
 
 ///
-#define TEST_CASE(group, ...)                                                                                          \
-  NANO_TEST_CONCAT(NANO_TEST_CASE_, NANO_TEST_GET_NTH_ARG(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0))(group, __VA_ARGS__)
-
-///
 #define NANO_TEST_ABORT_ON_ERROR 1
-
-NANO_TEST_CLANG_POP_WARNING()
-NANO_TEST_CLANG_POP_WARNING()
-
-#define NANO_TEST_CASE_1(group, name) NANO_TEST_CASE_IMPL(group, name, "", "", 0)
-#define NANO_TEST_CASE_2(group, name, desc) NANO_TEST_CASE_IMPL(group, name, desc, "", 0)
-#define NANO_TEST_CASE_3(group, name, desc, flags) NANO_TEST_CASE_IMPL(group, name, desc, "", flags)
 
 ///
 #define NANO_TEST_ABORT() NANO_TEST_ABORT_IMPL()
@@ -287,8 +289,8 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
   #define NANO_TEST_DEFAULT()                                                                                          \
     {}
 
-NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-destructor-override")
-NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-override")
+// NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-destructor-override")
+// NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-override")
 
 #else
   #error Unsupported cpp version
@@ -1071,26 +1073,24 @@ namespace test {
   // MARK: - Test check result -
 
   struct check_result {
-    //    check_result() NANO_TEST_DEFAULT()
-
     inline check_result(const char* _group, const item* _item, const char* _expr, const char* _file, std::size_t _line,
         std::size_t _end_time, bool _success)
-        : group(_group)
-        , item(_item)
-        , expr(_expr)
-        , file(_file)
-        , line(_line)
-        , end_time(_end_time)
-        , success(_success) {}
+        : m_group(_group)
+        , m_item(_item)
+        , m_expr(_expr)
+        , m_file(_file)
+        , m_line(_line)
+        , m_end_time(_end_time)
+        , m_success(_success) {}
 
-    const char* group;
-    const item* item;
-    const char* expr;
+    const char* m_group;
+    const item* m_item;
+    const char* m_expr;
 
-    const char* file;
-    std::size_t line;
-    std::size_t end_time;
-    bool success;
+    const char* m_file;
+    std::size_t m_line;
+    std::size_t m_end_time;
+    bool m_success;
     char reserved[7];
   };
 
@@ -1361,6 +1361,6 @@ namespace test {
 NANO_TEST_MSVC_POP_WARNING() // 4514 5045
 
 #if NANO_TEST_CPP_VERSION < 201103L && NANO_TEST_CPP_VERSION >= 199711L
-NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-override
-NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-destructor-override
+// NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-override
+// NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-destructor-override
 #endif //
