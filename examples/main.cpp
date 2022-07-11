@@ -1,3 +1,3 @@
 #include "utest.h"
 
-UTEST_MAIN()
+NANO_TEST_MAIN()

@@ -68,6 +68,5 @@ Standard: c++20
 TabWidth: 2
 UseTab: Never
 SortIncludes:	false
-StatementAttributeLikeMacros: [MTS_ATTRIBUTE_UNUSED, MTS_NODISCARD, MTS_ATTRIBUTE_HIDDEN, MTS_ATTRIBUTE_NO_RETURN, MTS_ALWAYS_INLINE]
-WhitespaceSensitiveMacros: ['MTS_STRINGIFY', 'MTS_STRINGIFY_IMPL', 'MTS_STR']
+WhitespaceSensitiveMacros: ['NANO_TEST_CLANG_PUSH_WARNING']
 IndentPPDirectives: BeforeHash
