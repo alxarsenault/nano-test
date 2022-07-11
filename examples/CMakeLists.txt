@@ -7,7 +7,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${EXAMPLE_SOURCE_FILES})
 
 add_executable(${PROJECT_NAME} ${EXAMPLE_SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC  utest)
+target_link_libraries(${PROJECT_NAME} PUBLIC nano-test)
 
 set(CLANG_OPTIONS -Weverything -Wno-c++98-compat)
 set(MSVC_OPTIONS /W4)
