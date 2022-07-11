@@ -49,24 +49,30 @@
 #endif
 
 #ifdef _MSC_VER
-  #define NANO_TEST_MSVC_PUSH_WARNING(x) __pragma(warning(push)) __pragma(warning(disable : x))
-  #define NANO_TEST_MSVC_POP_WARNING() __pragma(warning(pop))
-
-  #define NANO_TEST_CLANG_PUSH_WARNING(x)
-  #define NANO_TEST_CLANG_POP_WARNING()
-
+  #define NANO_TEST_MSVC_PRAGMA(X) __pragma(X)
 #else
-  #define NANO_TEST_MSVC_PUSH_WARNING(x)
-  #define NANO_TEST_MSVC_POP_WARNING()
-
-  #define DIAGNOSTIC_HELPER0(x) #x
-  #define DIAGNOSTIC_HELPER1(kind, y) DIAGNOSTIC_HELPER0(clang diagnostic kind #y)
-
-  #define NANO_TEST_CLANG_PUSH_WARNING(x) _Pragma("clang diagnostic push") _Pragma(DIAGNOSTIC_HELPER1(ignored, x))
-  #define NANO_TEST_CLANG_POP_WARNING() _Pragma("clang diagnostic pop")
+  #define NANO_TEST_MSVC_PRAGMA(X)
 #endif
 
-#define NANO_TEST_ABORT_ON_ERROR 1
+#ifdef __clang__
+  #define NANO_TEST_CLANG_PRAGMA(X) _Pragma(X)
+#else
+  #define NANO_TEST_CLANG_PRAGMA(X)
+#endif
+
+#define NANO_TEST_MSVC_DIAGNOSTIC_PUSH() NANO_TEST_MSVC_PRAGMA(warning(push))
+#define NANO_TEST_MSVC_DIAGNOSTIC_POP() NANO_TEST_MSVC_PRAGMA(warning(pop))
+#define NANO_TEST_MSVC_PUSH_WARNING(X) NANO_TEST_MSVC_DIAGNOSTIC_PUSH() NANO_TEST_MSVC_PRAGMA(warning(disable : X))
+#define NANO_TEST_MSVC_POP_WARNING() NANO_TEST_MSVC_DIAGNOSTIC_POP()
+
+#define NANO_TEST_CLANG_DIAGNOSTIC_PUSH() NANO_TEST_CLANG_PRAGMA("clang diagnostic push")
+#define NANO_TEST_CLANG_DIAGNOSTIC_POP() NANO_TEST_CLANG_PRAGMA("clang diagnostic pop")
+#define NANO_TEST_CLANG_DIAGNOSTIC(TYPE, X) NANO_TEST_CLANG_PRAGMA(NANO_TEST_STRINGIFY(clang diagnostic TYPE X))
+
+#define NANO_TEST_CLANG_PUSH_WARNING(X)                                                                                \
+  NANO_TEST_CLANG_DIAGNOSTIC_PUSH() NANO_TEST_CLANG_PRAGMA(NANO_TEST_STRINGIFY(clang diagnostic ignored X))
+
+#define NANO_TEST_CLANG_POP_WARNING() NANO_TEST_CLANG_DIAGNOSTIC_POP()
 
 #define NANO_TEST_CONCAT1(_X, _Y) _X##_Y
 #define NANO_TEST_CONCAT(_X, _Y) NANO_TEST_CONCAT1(_X, _Y)
@@ -74,8 +80,8 @@
 #define NANO_TEST_STRINGIFY(X) NANO_TEST_STR(X)
 #define NANO_TEST_STR(X) #X
 
-NANO_TEST_CLANG_PUSH_WARNING(-Wvariadic-macros)
-NANO_TEST_CLANG_PUSH_WARNING(-Wc++98-compat-pedantic)
+NANO_TEST_CLANG_PUSH_WARNING("-Wvariadic-macros")
+NANO_TEST_CLANG_PUSH_WARNING("-Wc++98-compat-pedantic")
 
 #define NANO_TEST_GET_NTH_ARG(_1, _2, _3, _4, _5, _6, N, ...) N
 
@@ -86,6 +92,9 @@ NANO_TEST_CLANG_PUSH_WARNING(-Wc++98-compat-pedantic)
 ///
 #define TEST_CASE(group, ...)                                                                                          \
   NANO_TEST_CONCAT(NANO_TEST_CASE_, NANO_TEST_GET_NTH_ARG(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0))(group, __VA_ARGS__)
+
+///
+#define NANO_TEST_ABORT_ON_ERROR 1
 
 NANO_TEST_CLANG_POP_WARNING()
 NANO_TEST_CLANG_POP_WARNING()
@@ -278,8 +287,8 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
   #define NANO_TEST_DEFAULT()                                                                                          \
     {}
 
-NANO_TEST_CLANG_PUSH_WARNING(-Wsuggest-destructor-override)
-NANO_TEST_CLANG_PUSH_WARNING(-Wsuggest-override)
+NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-destructor-override")
+NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-override")
 
 #else
   #error Unsupported cpp version
@@ -540,7 +549,7 @@ private:
   std::string _what;
 };
 
-NANO_TEST_CLANG_PUSH_WARNING(-Wpadded)
+NANO_TEST_CLANG_PUSH_WARNING("-Wpadded")
 class argument_parser {
 public:
   inline argument_parser(const std::string& bin, const std::string& desc)
@@ -1204,7 +1213,7 @@ namespace test {
     };
 
     static inline manager& get_instance() {
-      NANO_TEST_CLANG_PUSH_WARNING(-Wexit-time-destructors)
+      NANO_TEST_CLANG_PUSH_WARNING("-Wexit-time-destructors")
       static manager tm;
       return tm;
       NANO_TEST_CLANG_POP_WARNING()

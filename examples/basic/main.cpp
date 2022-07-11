@@ -1,4 +1,4 @@
-#include "nano_test.h"
+#include "nano/utest.h"
 
 namespace {
 
@@ -30,27 +30,6 @@ TEST_CASE("Example", Expect, "Expects") {
   EXPECT_FLOAT_EQ_T(4.5f, 4.6f, 0.1f);
 
   EXPECT_FLOAT_NE_T(4.5f, 4.7f, 0.01f);
-}
-
-inline void foo_throw(bool err) {
-  if (err) {
-    throw std::range_error("bad range");
-  }
-}
-
-TEST_CASE("Example", Exception, "Check exceptions", NANO_TEST_ABORT_ON_ERROR) {
-  ASSERT_EXCEPTION(foo_throw(true), std::range_error);
-  EXPECT_EXCEPTION(foo_throw(true), std::exception);
-  // ASSERT_EXCEPTION(foo_throw(true), std::bad_cast);
-}
-
-TEST_CASE("Example", Range) {
-  int a[] = { 1, 2, 3 };
-  long b[] = { 1, 2, 4 };
-
-  EXPECT_RANGE_EQ(&a[0], &b[0], 2);
-  EXPECT_RANGE_GE(&a[0], &b[0], 2);
-  ASSERT_RANGE_EQ(&a[0], &b[0], 3);
 }
 } // namespace.
 
