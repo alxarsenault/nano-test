@@ -26,7 +26,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <exception>
@@ -41,7 +40,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #ifndef NANO_NAMESPACE
@@ -149,12 +147,12 @@ NANO_TEST_CLANG_DIAGNOSTIC_POP()
 #define ASSERT_GE(A, B) NANO_TEST_ASSERT_IMPL(NANO_TEST_STRINGIFY(A >= B), (A >= B))
 
 /// Tests that A is null.
-#define EXPECT_NULL(A) NANO_TEST_EXPECT_IMPL(NANO_TEST_STRINGIFY(A == nullptr), (A == nullptr))
-#define ASSERT_NULL(A) NANO_TEST_ASSERT_IMPL(NANO_TEST_STRINGIFY(A == nullptr), (A == nullptr))
+#define EXPECT_NULL(A) NANO_TEST_EXPECT_IMPL(NANO_TEST_STRINGIFY(A == NANO_TEST_NULLPTR), (A == NANO_TEST_NULLPTR))
+#define ASSERT_NULL(A) NANO_TEST_ASSERT_IMPL(NANO_TEST_STRINGIFY(A == NANO_TEST_NULLPTR), (A == NANO_TEST_NULLPTR))
 
 /// Tests that A is not null.
-#define EXPECT_NOT_NULL(A) NANO_TEST_EXPECT_IMPL(NANO_TEST_STRINGIFY(A != nullptr), (A != nullptr))
-#define ASSERT_NOT_NULL(A) NANO_TEST_ASSERT_IMPL(NANO_TEST_STRINGIFY(A != nullptr), (A != nullptr))
+#define EXPECT_NOT_NULL(A) NANO_TEST_EXPECT_IMPL(NANO_TEST_STRINGIFY(A != NANO_TEST_NULLPTR), (A != NANO_TEST_NULLPTR))
+#define ASSERT_NOT_NULL(A) NANO_TEST_ASSERT_IMPL(NANO_TEST_STRINGIFY(A != NANO_TEST_NULLPTR), (A != NANO_TEST_NULLPTR))
 
 ///
 #define EXPECT_FLOAT_EQ(A, B)                                                                                          \
@@ -243,6 +241,7 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
 #endif
 
 #if NANO_TEST_CPP_VERSION >= 201703L
+  #define NANO_TEST_NULLPTR nullptr
   #define NANO_TEST_INLINE_CONSTEXPR inline constexpr
   #define NANO_TEST_NOEXCEPT noexcept
   #define NANO_TEST_NORETURN [[noreturn]]
@@ -250,9 +249,14 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
   #define NANO_TEST_INLINE_VARIABLE inline
   #define NANO_TEST_OVERRIDE override
   #define NANO_TEST_RVALUE_REF(X) X&&
+  #define NANO_TEST_MOVE(X) std::move(X)
   #define NANO_TEST_DEFAULT() = default;
+  #define NANO_TEST_TO_STRING(X) std::to_string(X)
+  #include <chrono>
+  #include <type_traits>
 
 #elif NANO_TEST_CPP_VERSION >= 201402L
+  #define NANO_TEST_NULLPTR nullptr
   #define NANO_TEST_INLINE_CONSTEXPR static constexpr
   #define NANO_TEST_NOEXCEPT noexcept
   #define NANO_TEST_NORETURN [[noreturn]]
@@ -260,9 +264,14 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
   #define NANO_TEST_INLINE_VARIABLE static
   #define NANO_TEST_OVERRIDE override
   #define NANO_TEST_RVALUE_REF(X) X&&
+  #define NANO_TEST_MOVE(X) std::move(X)
   #define NANO_TEST_DEFAULT() = default;
+  #define NANO_TEST_TO_STRING(X) std::to_string(X)
+  #include <chrono>
+  #include <type_traits>
 
 #elif NANO_TEST_CPP_VERSION >= 201103L
+  #define NANO_TEST_NULLPTR nullptr
   #define NANO_TEST_INLINE_CONSTEXPR static constexpr
   #define NANO_TEST_NOEXCEPT noexcept
   #define NANO_TEST_NORETURN [[noreturn]]
@@ -270,9 +279,15 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
   #define NANO_TEST_INLINE_VARIABLE static
   #define NANO_TEST_OVERRIDE override
   #define NANO_TEST_RVALUE_REF(X) X&&
+  #define NANO_TEST_MOVE(X) std::move(X)
   #define NANO_TEST_DEFAULT() = default;
+  #define NANO_TEST_TO_STRING(X) std::to_string(X)
+  #include <chrono>
+  #include <type_traits>
 
 #elif NANO_TEST_CPP_VERSION >= 199711L
+  #define NANO_TEST_CPP_98
+  #define NANO_TEST_NULLPTR NULL
   #define NANO_TEST_INLINE_CONSTEXPR static
   #define NANO_TEST_NOEXCEPT throw()
 
@@ -286,12 +301,18 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
   #define NANO_TEST_INLINE_VARIABLE static
   #define NANO_TEST_OVERRIDE
   #define NANO_TEST_RVALUE_REF(X) const X&
+  #define NANO_TEST_MOVE(X) X
   #define NANO_TEST_DEFAULT()                                                                                          \
     {}
 
-// NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-destructor-override")
-// NANO_TEST_CLANG_PUSH_WARNING("-Wsuggest-override")
+  #define NANO_TEST_TO_STRING(X) static_cast<std::ostringstream&>((std::ostringstream() << X)).str()
 
+  #include <ctime>
+
+NANO_TEST_CLANG_DIAGNOSTIC_PUSH()
+NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wunknown-warning-option")
+NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wsuggest-destructor-override")
+NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wsuggest-override")
 #else
   #error Unsupported cpp version
 #endif
@@ -445,13 +466,13 @@ public:
   enum count { ANY = -1 };
 
   inline argument& name(NANO_TEST_RVALUE_REF(std::string) name) {
-    _names.push_back(std::move(name));
+    _names.push_back(NANO_TEST_MOVE(name));
     return *this;
   }
 
   inline argument& names(NANO_TEST_RVALUE_REF(std::string) name1, NANO_TEST_RVALUE_REF(std::string) name2) {
-    _names.push_back(std::move(name1));
-    _names.push_back(std::move(name2));
+    _names.push_back(NANO_TEST_MOVE(name1));
+    _names.push_back(NANO_TEST_MOVE(name2));
     return *this;
   }
 
@@ -461,7 +482,7 @@ public:
   }
 
   inline argument& description(NANO_TEST_RVALUE_REF(std::string) description) NANO_TEST_NOEXCEPT {
-    _desc = std::move(description);
+    _desc = NANO_TEST_MOVE(description);
     return *this;
   }
 
@@ -592,7 +613,7 @@ public:
       else {
         int current = 1;
 
-        for (std::map<int, int>::const_iterator v = _positional_arguments.cbegin(); v != _positional_arguments.cend();
+        for (std::map<int, int>::const_iterator v = _positional_arguments.begin(); v != _positional_arguments.end();
              ++v) {
           if (v->first != argument::LAST) {
             for (; current < v->first; current++) {
@@ -603,7 +624,7 @@ public:
         }
 
         std::map<int, int>::const_iterator it = _positional_arguments.find(argument::LAST);
-        if (it == _positional_arguments.cend()) {
+        if (it == _positional_arguments.end()) {
           std::cout << " [options...]";
         }
         else {
@@ -643,8 +664,8 @@ public:
     if (argc > 1) {
 
       // Build name map.
-      for (std::vector<argument>::const_iterator a = _arguments.cbegin(); a != _arguments.cend(); ++a) {
-        for (std::vector<std::string>::const_iterator n = a->_names.cbegin(); n != a->_names.cend(); ++n) {
+      for (std::vector<argument>::const_iterator a = _arguments.begin(); a != _arguments.end(); ++a) {
+        for (std::vector<std::string>::const_iterator n = a->_names.begin(); n != a->_names.end(); ++n) {
           std::string name = detail::_ltrim_dash_copy(*n);
 
           if (_name_map.find(name) != _name_map.end()) {
@@ -735,8 +756,7 @@ public:
       return err;
     }
 
-    for (std::map<int, int>::const_iterator p = _positional_arguments.cbegin(); p != _positional_arguments.cend();
-         ++p) {
+    for (std::map<int, int>::const_iterator p = _positional_arguments.begin(); p != _positional_arguments.end(); ++p) {
       const argument& a = _arguments[static_cast<size_t>(p->second)];
       if (a._values.size() > 0 && a._values[0][0] == '-') {
         std::string name = detail::_ltrim_dash_copy(a._values[0]);
@@ -746,20 +766,20 @@ public:
             return result("Poisitional argument expected at the end, but argument " + a._values[0] + " found instead");
           }
           else {
-            return result("Poisitional argument expected in position " + std::to_string(a._position) + ", but argument "
-                + a._values[0] + " found instead");
+            return result("Poisitional argument expected in position " + NANO_TEST_TO_STRING(a._position)
+                + ", but argument " + a._values[0] + " found instead");
           }
         }
       }
     }
 
-    for (std::vector<argument>::const_iterator a = _arguments.cbegin(); a != _arguments.cend(); ++a) {
+    for (std::vector<argument>::const_iterator a = _arguments.begin(); a != _arguments.end(); ++a) {
       if (a->_required && !a->_found) {
         return result("Required argument not found: " + a->_names[0]);
       }
 
       if (a->_position >= 0 && argc >= a->_position && !a->_found) {
-        return result("Argument " + a->_names[0] + " expected in position " + std::to_string(a->_position));
+        return result("Argument " + a->_names[0] + " expected in position " + NANO_TEST_TO_STRING(a->_position));
       }
     }
 
@@ -780,11 +800,11 @@ public:
   inline const argument* get_argument(const std::string& name) const {
     std::map<std::string, int>::const_iterator t = _name_map.find(name);
     if (t == _name_map.end()) {
-      return nullptr;
+      return NANO_TEST_NULLPTR;
     }
 
     const argument* arg = &_arguments[static_cast<size_t>(t->second)];
-    return arg->_found ? arg : nullptr;
+    return arg->_found ? arg : NANO_TEST_NULLPTR;
   }
 
 private:
@@ -855,7 +875,7 @@ private:
         return _begin_argument(arg, true, position);
       }
       else {
-        for (std::string::const_iterator c = arg_name.cbegin(); c != arg_name.cend(); ++c) {
+        for (std::string::const_iterator c = arg_name.begin(); c != arg_name.end(); ++c) {
 
           if (result r = _begin_argument(std::string(1, *c), true, position)) {
             return r;
@@ -1022,29 +1042,28 @@ namespace test {
   }
 
   namespace detail {
-
     template <typename T1, typename T2>
     struct float_common_return {
-
+#ifdef NANO_TEST_CPP_98
+      typedef double type;
+#else
       typedef typename std::conditional<std::is_integral<typename std::common_type<T1, T2>::type>::value, float,
           typename std::common_type<T1, T2>::type>::type type;
+#endif // NANO_TEST_CPP_98
     };
 
-    //  template <typename T1, typename T2>
-    //  using float_common_return_t =
-    //      typename std::conditional<std::is_integral<typename std::common_type<T1, T2>::type>::value, float,
-    //          typename std::common_type<T1, T2>::type>::type;
-
-    //    template <typename... T>
-    //    using float_common_return_t =
-    //        typename std::conditional<std::is_integral<typename std::common_type<T...>::type>::value, float,
-    //            typename std::common_type<T...>::type>::type;
-
+#ifdef NANO_TEST_CPP_98
+    template <class StartT>
+    inline NANO_TEST_CONSTEXPR double get_us_count(const StartT& start) {
+      return (static_cast<double>(std::clock()) - static_cast<double>(start)) * (1000000.0 / CLOCKS_PER_SEC);
+    }
+#else
     template <class StartT>
     inline NANO_TEST_CONSTEXPR std::chrono::microseconds::rep get_us_count(const StartT& start) {
       return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start)
           .count();
     }
+#endif
 
     NANO_TEST_INLINE_CONSTEXPR const char* kOk = "[       OK ]";
     NANO_TEST_INLINE_CONSTEXPR const char* kFailed = "[  FAILED  ]";
@@ -1103,16 +1122,16 @@ namespace test {
 
     struct state {
       state()
-          : current_item(nullptr)
+          : current_item(NANO_TEST_NULLPTR)
           , passed_count(0)
           , failed_count(0)
           , total_tests(0)
           , check_count(0)
           , failed_check_count(0)
           , current_test_failed(false)
-          , should_stop(false) {}
+          , should_stop(false)
 
-      typedef std::chrono::high_resolution_clock clock;
+      {}
 
       const item* current_item;
       std::size_t passed_count;
@@ -1121,10 +1140,20 @@ namespace test {
       std::size_t check_count;
       std::size_t failed_check_count;
 
+#ifdef NANO_TEST_CPP_98
+      struct clock {
+        static inline double now() { return static_cast<double>(std::clock()); }
+      };
+      double launch_start_time;
+      double group_start_time;
+      double test_start_time;
+#else
+      typedef std::chrono::high_resolution_clock clock;
+
       clock::time_point launch_start_time;
       clock::time_point group_start_time;
       clock::time_point test_start_time;
-
+#endif
       const char* current_group;
       const char* current_test;
 
@@ -1199,11 +1228,17 @@ namespace test {
         }
       }
 
+#ifdef NANO_TEST_CPP_98
+      inline double test_us() const { return detail::get_us_count(test_start_time); }
+      inline double group_us() const { return detail::get_us_count(group_start_time); }
+      inline double launch_us() const { return detail::get_us_count(launch_start_time); }
+#else
       inline std::chrono::microseconds::rep test_us() const { return detail::get_us_count(test_start_time); }
 
       inline std::chrono::microseconds::rep group_us() const { return detail::get_us_count(group_start_time); }
 
       inline std::chrono::microseconds::rep launch_us() const { return detail::get_us_count(launch_start_time); }
+#endif
 
       inline static NANO_TEST_CONSTEXPR const char* test(std::size_t count) {
         return count <= 1 ? detail::kTest : detail::kTests;
@@ -1226,7 +1261,7 @@ namespace test {
       (void)opts;
       test_vector& vec = get_instance().m_tests[group];
       item item(name, desc, fct, flags);
-      vec.insert(std::upper_bound(vec.begin(), vec.end(), item, item_comparator()), std::move(item));
+      vec.insert(std::upper_bound(vec.begin(), vec.end(), item, item_comparator()), NANO_TEST_MOVE(item));
     }
 
     inline static int run(int argc, const char* argv[]);
@@ -1246,6 +1281,28 @@ namespace test {
 
   // MARK: - Inline implementations -
 
+#ifdef NANO_TEST_CPP_98
+  template <typename T1, typename T2, typename T3>
+  inline bool is_approximately_equal(T1 a, T2 b, T3 tolerance) {
+    typedef typename detail::float_common_return<T1, T2>::type ftype;
+
+    const ftype fa = static_cast<ftype>(a);
+    const ftype fb = static_cast<ftype>(b);
+    const ftype t = static_cast<ftype>(tolerance);
+    return (std::abs(fa - fb) <= t) || (std::abs(fa - fb) < (std::max(std::abs(fa), std::abs(fb)) * t));
+  }
+
+  template <typename T1, typename T2>
+  inline bool is_approximately_equal(T1 a, T2 b, double tolerance = std::numeric_limits<double>::epsilon()) {
+    typedef typename detail::float_common_return<T1, T2>::type ftype;
+
+    const ftype fa = static_cast<ftype>(a);
+    const ftype fb = static_cast<ftype>(b);
+    const ftype t = static_cast<ftype>(tolerance);
+    return (std::abs(fa - fb) <= t) || (std::abs(fa - fb) < (std::max(std::abs(fa), std::abs(fb)) * t));
+  }
+
+#else
   template <typename T1, typename T2>
   inline bool is_approximately_equal(T1 a, T2 b,
       typename detail::float_common_return<T1, T2>::type tolerance
@@ -1256,6 +1313,7 @@ namespace test {
     const ftype fb = static_cast<ftype>(b);
     return (std::abs(fa - fb) <= tolerance) || (std::abs(fa - fb) < (std::max(std::abs(fa), std::abs(fb)) * tolerance));
   }
+#endif
 
 #define NANO_TEST_DECL_COMP(name, comp)                                                                                \
   struct comp_##name {                                                                                                 \
@@ -1310,7 +1368,7 @@ namespace test {
     m_state.total_tests = 0;
     m_state.should_stop = false;
 
-    for (test_map::const_iterator g = m_tests.cbegin(); g != m_tests.cend(); ++g) {
+    for (test_map::const_iterator g = m_tests.begin(); g != m_tests.end(); ++g) {
       m_state.total_tests += g->second.size();
     }
 
@@ -1319,10 +1377,10 @@ namespace test {
 
     m_state.launch_start_time = state::clock::now();
 
-    for (test_map::const_iterator g = m_tests.cbegin(); g != m_tests.cend(); ++g) {
+    for (test_map::const_iterator g = m_tests.begin(); g != m_tests.end(); ++g) {
       m_state.start_group(*g);
 
-      for (test_vector::const_iterator t = g->second.cbegin(); t != g->second.cend(); ++t) {
+      for (test_vector::const_iterator t = g->second.begin(); t != g->second.end(); ++t) {
         m_state.run_test(*t);
 
         if (m_state.should_stop) {
@@ -1360,7 +1418,8 @@ namespace test {
 
 NANO_TEST_MSVC_POP_WARNING() // 4514 5045
 
-#if NANO_TEST_CPP_VERSION < 201103L && NANO_TEST_CPP_VERSION >= 199711L
+#ifdef NANO_TEST_CPP_98
+NANO_TEST_CLANG_DIAGNOSTIC_POP()
 // NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-override
 // NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-destructor-override
 #endif //

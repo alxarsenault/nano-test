@@ -5,7 +5,7 @@ namespace {
 TEST_CASE("Example", Expect, "Expects") {
   int a = 0;
   EXPECT_NOT_NULL(&a);
-  EXPECT_NULL(nullptr);
+  EXPECT_NULL(NANO_TEST_NULLPTR);
 
   EXPECT_EQ(1, 1);
   EXPECT_NE(0, 1);
