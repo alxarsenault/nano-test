@@ -37,6 +37,7 @@
 #include <locale>
 #include <map>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -1242,6 +1243,14 @@ namespace test {
       return 0;
     }
 
+    const std::vector<std::string>* groups_ptr = NANO_TEST_NULLPTR;
+    const argparse::argument* groups_arg = parser.get_argument("groups");
+    if (groups_arg) {
+      const std::vector<std::string>& groups = groups_arg->get_values();
+      groups_ptr = &groups;
+    }
+    //    bool hasGroups = parser.get_argument("groups")->get_values()
+
     if (results) {
       m_state.results = results;
     }
@@ -1251,8 +1260,23 @@ namespace test {
     m_state.total_tests = 0;
     m_state.should_stop = false;
 
-    for (test_map::const_iterator g = m_tests.begin(); g != m_tests.end(); ++g) {
-      m_state.total_tests += g->second.size();
+    std::set<std::string> group_map;
+
+    if (groups_ptr) {
+      for (std::size_t i = 0; i < groups_ptr->size(); i++) {
+        group_map.insert(groups_ptr->operator[](i));
+      }
+
+      for (test_map::const_iterator g = m_tests.begin(); g != m_tests.end(); ++g) {
+        if (group_map.find(g->first) != group_map.end()) {
+          m_state.total_tests += g->second.size();
+        }
+      }
+    }
+    else {
+      for (test_map::const_iterator g = m_tests.begin(); g != m_tests.end(); ++g) {
+        m_state.total_tests += g->second.size();
+      }
     }
 
     std::cout << "[==========] Running " << m_state.total_tests << " " << state::test(m_state.total_tests) << " from "
@@ -1261,6 +1285,10 @@ namespace test {
     m_state.launch_start_time = state::clock::now();
 
     for (test_map::const_iterator g = m_tests.begin(); g != m_tests.end(); ++g) {
+      if (!group_map.empty() && group_map.find(g->first) == group_map.end()) {
+        continue;
+      }
+
       m_state.start_group(*g);
 
       for (test_vector::const_iterator t = g->second.begin(); t != g->second.end(); ++t) {

@@ -27,10 +27,6 @@ add_library(${PROJECT_NAME} INTERFACE ${NANO_TEST_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${NANO_TEST_SOURCES})
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if ("$ENV{USER}" STREQUAL "alexandrearsenault")
-    set(NANO_TEST_DEV ON)
-endif()
-
 if (NANO_TEST_DEV)
     set(NANO_TEST_BUILD_EXAMPLES ON)
 endif()
@@ -63,7 +59,7 @@ if (NANO_TEST_BUILD_EXAMPLES)
         )
     endfunction()
 
-    set(NANO_TEST_EXAMPLES assert basic range output)
+    set(NANO_TEST_EXAMPLES assert basic range output test)
     set(NANO_TEST_EXAMPLES_PROJECTS "")
 
     set(NANO_EX_CMD "")
