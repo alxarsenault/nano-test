@@ -317,26 +317,7 @@ NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wsuggest-override")
   #error Unsupported cpp version
 #endif
 
-#define NANO_TEST_EXPECT_IMPL(S, Expr)                                                                                 \
-  do {                                                                                                                 \
-    NANO_TEST_MSVC_PUSH_WARNING(4127)                                                                                  \
-    try {                                                                                                              \
-      NANO_NAMESPACE::test::manager::state().check_count++;                                                            \
-      if (!(Expr)) {                                                                                                   \
-        NANO_NAMESPACE::test::manager::state().current_test_failed = true;                                             \
-        NANO_NAMESPACE::test::manager::state().failed_check_count++;                                                   \
-        NANO_NAMESPACE::test::manager::state().add_check(false, S, __FILE__, __LINE__);                                \
-        std::cout << "    > Check failed\n      expected : " << S << "\n      source   : " << __FILE__                 \
-                  << "\n      line     : " << __LINE__ << "\n";                                                        \
-      }                                                                                                                \
-      else {                                                                                                           \
-        NANO_NAMESPACE::test::manager::state().add_check(true, S, __FILE__, __LINE__);                                 \
-      }                                                                                                                \
-    } catch (const std::exception& e) {                                                                                \
-      throw e;                                                                                                         \
-    }                                                                                                                  \
-    NANO_TEST_MSVC_POP_WARNING()                                                                                       \
-  } while (0)
+#define NANO_TEST_EXPECT_IMPL(S, Expr) NANO_NAMESPACE::test::manager::state().check_test((Expr), S, __FILE__, __LINE__)
 
 #define NANO_TEST_EXPECT_EXCEPTION_IMPL(Expr, exception_type)                                                          \
   do {                                                                                                                 \
@@ -360,25 +341,7 @@ NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wsuggest-override")
   } while (0)
 
 #define NANO_TEST_EXPECT_RANGE_IMPL(S, A, B, Size, Comp)                                                               \
-  do {                                                                                                                 \
-    NANO_TEST_MSVC_PUSH_WARNING(4127)                                                                                  \
-    try {                                                                                                              \
-      NANO_NAMESPACE::test::manager::state().check_count++;                                                            \
-      if (!NANO_NAMESPACE::test::compare_range<Comp>(A, B, static_cast<std::size_t>(Size))) {                          \
-        NANO_NAMESPACE::test::manager::state().current_test_failed = true;                                             \
-        NANO_NAMESPACE::test::manager::state().failed_check_count++;                                                   \
-        NANO_NAMESPACE::test::manager::state().add_check(false, S, __FILE__, __LINE__);                                \
-        std::cout << "    > Check failed\n      expected : " << S << "\n      source   : " << __FILE__                 \
-                  << "\n      line     : " << __LINE__ << "\n";                                                        \
-      }                                                                                                                \
-      else {                                                                                                           \
-        NANO_NAMESPACE::test::manager::state().add_check(true, S, __FILE__, __LINE__);                                 \
-      }                                                                                                                \
-    } catch (const std::exception& e) {                                                                                \
-      throw e;                                                                                                         \
-    }                                                                                                                  \
-    NANO_TEST_MSVC_POP_WARNING()                                                                                       \
-  } while (0)
+  NANO_NAMESPACE::test::manager::state().check_range<Comp>(A, B, Size, S, __FILE__, __LINE__)
 
 #define NANO_TEST_ASSERT_IMPL(S, Expr)                                                                                 \
   NANO_NAMESPACE::test::manager::state().check_count++;                                                                \
@@ -1076,8 +1039,8 @@ namespace test {
 
   typedef void (*test_function)();
 
-  struct item {
-    inline item(const std::string& _name, const std::string& _desc, test_function _fct, long _flags)
+  struct test_item {
+    inline test_item(const std::string& _name, const std::string& _desc, test_function _fct, long _flags)
         : name(_name)
         , desc(_desc)
         , fct(_fct)
@@ -1092,32 +1055,43 @@ namespace test {
   // MARK: - Test check result -
 
   struct check_result {
-    inline check_result(const char* _group, const item* _item, const char* _expr, const char* _file, std::size_t _line,
-        std::size_t _end_time, bool _success)
-        : m_group(_group)
-        , m_item(_item)
-        , m_expr(_expr)
-        , m_file(_file)
-        , m_line(_line)
-        , m_end_time(_end_time)
-        , m_success(_success) {}
+    inline check_result(const char* _group, const test_item* _item, const char* _expr, const char* _file,
+        std::size_t _line, std::size_t _end_time, bool _success)
+        : group(_group)
+        , item(_item)
+        , expr(_expr)
+        , file(_file)
+        , line(_line)
+        , end_time(_end_time)
+        , success(_success) {}
 
-    const char* m_group;
-    const item* m_item;
-    const char* m_expr;
+    const char* group;
+    const test_item* item;
+    const char* expr;
 
-    const char* m_file;
-    std::size_t m_line;
-    std::size_t m_end_time;
-    bool m_success;
+    const char* file;
+    std::size_t line;
+    std::size_t end_time;
+    bool success;
     char reserved[7];
   };
+
+  template <typename Comp, typename T1, typename T2>
+  inline bool compare_range(const T1* a, const T2* b, std::size_t size) {
+    for (std::size_t i = 0; i < size; i++) {
+      if (!Comp()(a[i], b[i])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   // MARK: - Tests manager -
 
   class manager {
   public:
-    typedef std::vector<item> test_vector;
+    typedef std::vector<test_item> test_vector;
     typedef std::map<std::string, test_vector> test_map;
 
     struct state {
@@ -1128,12 +1102,13 @@ namespace test {
           , total_tests(0)
           , check_count(0)
           , failed_check_count(0)
+          , results(NANO_TEST_NULLPTR)
           , current_test_failed(false)
           , should_stop(false)
 
       {}
 
-      const item* current_item;
+      const test_item* current_item;
       std::size_t passed_count;
       std::size_t failed_count;
       std::size_t total_tests;
@@ -1157,15 +1132,59 @@ namespace test {
       const char* current_group;
       const char* current_test;
 
-      std::vector<check_result> results;
+      std::vector<check_result>* results;
 
       bool current_test_failed;
       bool should_stop;
       char reserved[6];
 
       inline void add_check(bool success, const char* expr, const char* file, std::size_t line) {
-        results.push_back(check_result(current_group, current_item, expr, file, line,
-            static_cast<std::size_t>(detail::get_us_count(test_start_time)), success));
+        if (results) {
+          results->push_back(check_result(current_group, current_item, expr, file, line,
+              static_cast<std::size_t>(detail::get_us_count(test_start_time)), success));
+        }
+      }
+
+      inline void check_test(bool expr, const char* expr_str, const char* file, std::size_t line) {
+        NANO_TEST_MSVC_PUSH_WARNING(4127)
+        try {
+          check_count++;
+          if (!(expr)) {
+            current_test_failed = true;
+            failed_check_count++;
+            add_check(false, expr_str, file, line);
+            std::cout << "    > Check failed\n      expected : " << expr_str << "\n      source   : " << file
+                      << "\n      line     : " << line << "\n";
+          }
+          else {
+            add_check(true, expr_str, file, line);
+          }
+        } catch (const std::exception& e) {
+          throw e;
+        }
+        NANO_TEST_MSVC_POP_WARNING()
+      }
+
+      template <typename Comp, typename T1, typename T2>
+      inline void check_range(
+          const T1* a, const T2* b, std::size_t size, const char* expr_str, const char* file, std::size_t line) {
+        NANO_TEST_MSVC_PUSH_WARNING(4127)
+        try {
+          check_count++;
+          if (!compare_range<Comp>(a, b, size)) {
+            current_test_failed = true;
+            failed_check_count++;
+            add_check(false, expr_str, file, line);
+            std::cout << "    > Check failed\n      expected : " << expr_str << "\n      source   : " << file
+                      << "\n      line     : " << line << "\n";
+          }
+          else {
+            add_check(true, expr_str, file, line);
+          }
+        } catch (const std::exception& e) {
+          throw e;
+        }
+        NANO_TEST_MSVC_POP_WARNING()
       }
 
       inline void start_group(const test_map::value_type& g) {
@@ -1180,7 +1199,7 @@ namespace test {
         std::cout << "[----------] group '" << g.first << "' (" << group_us() << " us). \n\n";
       }
 
-      inline void run_test(const item& t) {
+      inline void run_test(const test_item& t) {
         current_item = &t;
         current_test = t.name.c_str();
         current_test_failed = false;
@@ -1260,11 +1279,12 @@ namespace test {
         const char* group, const char* name, const char* desc, const char* opts, long flags, test_function fct) {
       (void)opts;
       test_vector& vec = get_instance().m_tests[group];
-      item item(name, desc, fct, flags);
+      test_item item(name, desc, fct, flags);
       vec.insert(std::upper_bound(vec.begin(), vec.end(), item, item_comparator()), NANO_TEST_MOVE(item));
     }
 
     inline static int run(int argc, const char* argv[]);
+    inline static int run(int argc, const char* argv[], std::vector<check_result>& results);
 
   private:
     inline manager() {}
@@ -1272,10 +1292,10 @@ namespace test {
     test_map m_tests;
     struct state m_state;
 
-    inline int run_impl(int argc, const char* argv[]);
+    inline int run_impl(int argc, const char* argv[], std::vector<check_result>* results);
 
     struct item_comparator {
-      inline bool operator()(const item& a, const item& b) const { return a.name < b.name; }
+      inline bool operator()(const test_item& a, const test_item& b) const { return a.name < b.name; }
     };
   };
 
@@ -1332,20 +1352,13 @@ namespace test {
 
 #undef NANO_TEST_DECL_COMP
 
-  template <typename Comp, typename T1, typename T2>
-  inline bool compare_range(const T1* a, const T2* b, std::size_t size) {
-    for (std::size_t i = 0; i < size; i++) {
-      if (!Comp()(a[i], b[i])) {
-        return false;
-      }
-    }
+  int manager::run(int argc, const char* argv[]) { return get_instance().run_impl(argc, argv, NANO_TEST_NULLPTR); }
 
-    return true;
+  int manager::run(int argc, const char* argv[], std::vector<check_result>& results) {
+    return get_instance().run_impl(argc, argv, &results);
   }
 
-  int manager::run(int argc, const char* argv[]) { return get_instance().run_impl(argc, argv); }
-
-  int manager::run_impl(int argc, const char* argv[]) {
+  int manager::run_impl(int argc, const char* argv[], std::vector<check_result>* results) {
 
     argparse::argument_parser parser("utest", "Unit tests runner");
     parser.add_argument("-v", "--verbose", "verbose", false).count(0);
@@ -1361,6 +1374,10 @@ namespace test {
     if (parser.exists("help")) {
       parser.print_help();
       return 0;
+    }
+
+    if (results) {
+      m_state.results = results;
     }
 
     m_state.passed_count = 0;
@@ -1413,6 +1430,10 @@ namespace test {
   }
 
   inline int run(int argc, const char* argv[]) { return manager::run(argc, argv); }
+
+  inline int run(int argc, const char* argv[], std::vector<nano::test::check_result>& results) {
+    return manager::run(argc, argv, results);
+  }
 } // namespace test.
 } // namespace NANO_NAMESPACE.
 
@@ -1420,6 +1441,4 @@ NANO_TEST_MSVC_POP_WARNING() // 4514 5045
 
 #ifdef NANO_TEST_CPP_98
 NANO_TEST_CLANG_DIAGNOSTIC_POP()
-// NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-override
-// NANO_TEST_CLANG_POP_WARNING() // -Wsuggest-destructor-override
 #endif //

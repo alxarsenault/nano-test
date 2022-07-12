@@ -7,7 +7,7 @@ TEST_CASE("Example", Range) {
 
   EXPECT_RANGE_EQ(&a[0], &b[0], 2);
   EXPECT_RANGE_GE(&a[0], &b[0], 2);
-  // ASSERT_RANGE_EQ(&a[0], &b[0], 3);
+  //   ASSERT_RANGE_EQ(&a[0], &b[0], 3);
 }
 } // namespace.
 
