@@ -305,9 +305,10 @@ NANO_TEST_MSVC_PUSH_WARNING(4514 5045)
   #define NANO_TEST_DEFAULT()                                                                                          \
     {}
 
-  #define NANO_TEST_TO_STRING(X) static_cast<std::ostringstream&>((std::ostringstream() << X)).str()
+  #define NANO_TEST_TO_STRING(X) NANO_NAMESPACE::test::to_string(X)
 
   #include <ctime>
+  #include <sstream>
 
 NANO_TEST_CLANG_DIAGNOSTIC_PUSH()
 NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wunknown-warning-option")
@@ -401,6 +402,18 @@ NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wsuggest-override")
 #endif
 
 #define NANO_TEST_ABORT_IMPL() NANO_NAMESPACE::test::manager::state().should_stop = true;
+
+namespace NANO_NAMESPACE {
+namespace test {
+
+  template <class T>
+  inline std::string to_string(T __val) {
+    std::ostringstream stream;
+    stream << __val;
+    return stream.str();
+  }
+} // namespace test.
+} // namespace NANO_NAMESPACE.
 
 namespace argparse {
 namespace detail {
