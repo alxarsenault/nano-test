@@ -29,8 +29,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
 
 add_library(nano::test ALIAS ${PROJECT_NAME})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    XCODE_GENERATE_SCHEME OFF)
+set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_GENERATE_SCHEME OFF)
 
 if (NANO_TEST_DEV)
     set(NANO_TEST_BUILD_EXAMPLES ON)
@@ -43,6 +42,7 @@ if (NANO_TEST_DEV)
         COMMAND "${CLANG_FORMAT}" --Werror  --dry-run ${NANO_TEST_SOURCES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     add_dependencies(${PROJECT_NAME} check-nano-test-formatting)
+    set_target_properties(check-nano-test-formatting PROPERTIES XCODE_GENERATE_SCHEME OFF)
 endif()
 
 # Examples.
