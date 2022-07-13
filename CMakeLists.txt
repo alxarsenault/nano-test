@@ -22,7 +22,7 @@ option(NANO_TEST_BUILD_EXAMPLES "Build examples." OFF)
 option(NANO_TEST_DEV "Development build" OFF)
 
 # nano-test interface.
-set(NANO_TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/nano/utest.h")
+set(NANO_TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/nano/test.h")
 add_library(${PROJECT_NAME} INTERFACE ${NANO_TEST_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${NANO_TEST_SOURCES})
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

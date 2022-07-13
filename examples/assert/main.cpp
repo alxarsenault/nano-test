@@ -1,4 +1,4 @@
-#include "nano/utest.h"
+#include "nano/test.h"
 
 namespace {
 inline void foo_throw(bool err) {

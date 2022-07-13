@@ -61,7 +61,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC nano-test)
 As an example, create a file named main.cpp in your `unit_tests/src/` directory with the following contents:
 
 ```cpp
-#include "nano/utest.h"
+#include "nano/test.h"
 
 namespace {
 TEST_CASE("Template", Template, "Template test case description") {
