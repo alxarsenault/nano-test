@@ -303,9 +303,9 @@ NANO_TEST_CLANG_DIAGNOSTIC(ignored, "-Wsuggest-override")
 namespace NANO_NAMESPACE {
 namespace test {
   template <class T>
-  inline std::string to_string(T __val) {
+  inline std::string to_string(T _val) {
     std::ostringstream stream;
-    stream << __val;
+    stream << _val;
     return stream.str();
   }
 } // namespace test.
@@ -1333,19 +1333,19 @@ namespace test {
 
 #define NANO_TEST_EXPECT_IMPL(S, Expr)                                                                                 \
   do {                                                                                                                 \
-    struct NANO_NAMESPACE::test::manager::state& __state = NANO_NAMESPACE::test::manager::state();                     \
+    struct NANO_NAMESPACE::test::manager::state& _nano_state = NANO_NAMESPACE::test::manager::state();                 \
     NANO_TEST_MSVC_PUSH_WARNING(4127)                                                                                  \
     try {                                                                                                              \
-      __state.check_count++;                                                                                           \
+      _nano_state.check_count++;                                                                                       \
       if (!(Expr)) {                                                                                                   \
-        __state.current_test_failed = true;                                                                            \
-        __state.failed_check_count++;                                                                                  \
-        __state.add_check(false, S, __FILE__, __LINE__);                                                               \
+        _nano_state.current_test_failed = true;                                                                        \
+        _nano_state.failed_check_count++;                                                                              \
+        _nano_state.add_check(false, S, __FILE__, __LINE__);                                                           \
         std::cout << "    > Check failed\n      expected : " << S << "\n      source   : " << __FILE__                 \
                   << "\n      line     : " << __LINE__ << "\n";                                                        \
       }                                                                                                                \
       else {                                                                                                           \
-        __state.add_check(true, S, __FILE__, __LINE__);                                                                \
+        _nano_state.add_check(true, S, __FILE__, __LINE__);                                                            \
       }                                                                                                                \
     } catch (const std::exception& e) {                                                                                \
       throw e;                                                                                                         \
@@ -1355,10 +1355,10 @@ namespace test {
 
 #define NANO_TEST_EXPECT_EXCEPTION_IMPL(Expr, exception_type)                                                          \
   do {                                                                                                                 \
-    struct NANO_NAMESPACE::test::manager::state& __state = NANO_NAMESPACE::test::manager::state();                     \
+    struct NANO_NAMESPACE::test::manager::state& _nano_state = NANO_NAMESPACE::test::manager::state();                 \
     int exception_caught = 0;                                                                                          \
     try {                                                                                                              \
-      __state.check_count++;                                                                                           \
+      _nano_state.check_count++;                                                                                       \
       (Expr);                                                                                                          \
     } catch (const exception_type&) {                                                                                  \
       exception_caught = 1;                                                                                            \
@@ -1367,8 +1367,8 @@ namespace test {
     }                                                                                                                  \
                                                                                                                        \
     if (exception_caught != 1) {                                                                                       \
-      __state.current_test_failed = true;                                                                              \
-      __state.failed_check_count++;                                                                                    \
+      _nano_state.current_test_failed = true;                                                                          \
+      _nano_state.failed_check_count++;                                                                                \
       std::cout << "    > Check exception failed\n      expected : " << NANO_TEST_STRINGIFY(exception_type)            \
                 << "\n      got      : " << (exception_caught == 2 ? "unexpected exception" : "no exception")          \
                 << "\n      source   : " << __FILE__ << "\n      line     : " << __LINE__ << "\n";                     \
@@ -1378,18 +1378,18 @@ namespace test {
 #define NANO_TEST_EXPECT_RANGE_IMPL(S, A, B, Size, Comp)                                                               \
   do {                                                                                                                 \
     NANO_TEST_MSVC_PUSH_WARNING(4127)                                                                                  \
-    struct NANO_NAMESPACE::test::manager::state& __state = NANO_NAMESPACE::test::manager::state();                     \
+    struct NANO_NAMESPACE::test::manager::state& _nano_state = NANO_NAMESPACE::test::manager::state();                 \
     try {                                                                                                              \
-      __state.check_count++;                                                                                           \
+      _nano_state.check_count++;                                                                                       \
       if (!NANO_NAMESPACE::test::compare_range<Comp>(A, B, static_cast<std::size_t>(Size))) {                          \
-        __state.current_test_failed = true;                                                                            \
-        __state.failed_check_count++;                                                                                  \
-        __state.add_check(false, S, __FILE__, __LINE__);                                                               \
+        _nano_state.current_test_failed = true;                                                                        \
+        _nano_state.failed_check_count++;                                                                              \
+        _nano_state.add_check(false, S, __FILE__, __LINE__);                                                           \
         std::cout << "    > Check failed\n      expected : " << S << "\n      source   : " << __FILE__                 \
                   << "\n      line     : " << __LINE__ << "\n";                                                        \
       }                                                                                                                \
       else {                                                                                                           \
-        __state.add_check(true, S, __FILE__, __LINE__);                                                                \
+        _nano_state.add_check(true, S, __FILE__, __LINE__);                                                            \
       }                                                                                                                \
     } catch (const std::exception& e) {                                                                                \
       throw e;                                                                                                         \
@@ -1408,10 +1408,10 @@ namespace test {
 
 #define NANO_TEST_ASSERT_EXCEPTION_IMPL(Expr, exception_type)                                                          \
   do {                                                                                                                 \
-    struct NANO_NAMESPACE::test::manager::state& __state = NANO_NAMESPACE::test::manager::state();                     \
+    struct NANO_NAMESPACE::test::manager::state& _nano_state = NANO_NAMESPACE::test::manager::state();                 \
     int exception_caught = 0;                                                                                          \
     try {                                                                                                              \
-      __state.check_count++;                                                                                           \
+      _nano_state.check_count++;                                                                                       \
       (Expr);                                                                                                          \
     } catch (const exception_type&) {                                                                                  \
       exception_caught = 1;                                                                                            \
@@ -1419,8 +1419,8 @@ namespace test {
       exception_caught = 2;                                                                                            \
     }                                                                                                                  \
     if (exception_caught != 1) {                                                                                       \
-      __state.current_test_failed = true;                                                                              \
-      __state.failed_check_count++;                                                                                    \
+      _nano_state.current_test_failed = true;                                                                          \
+      _nano_state.failed_check_count++;                                                                                \
       NANO_NAMESPACE::test::custom_exception(                                                                          \
           NANO_TEST_STRINGIFY(exception_type), exception_caught == 2, __FILE__, __LINE__);                             \
     }                                                                                                                  \
@@ -1429,28 +1429,28 @@ namespace test {
 #ifdef _MSC_VER
   #define NANO_TEST_CASE_IMPL(group, name, desc, opts, flags)                                                          \
     void name();                                                                                                       \
-    namespace __unit_tests {                                                                                           \
+    namespace _unit_tests_ {                                                                                           \
       namespace {                                                                                                      \
-        struct name##__TestRegistration {                                                                              \
-          inline name##__TestRegistration() {                                                                          \
+        struct name##_TestRegistration {                                                                               \
+          inline name##_TestRegistration() {                                                                           \
             NANO_NAMESPACE::test::manager::add_test(group, #name, desc, opts, flags, &name);                           \
           }                                                                                                            \
         };                                                                                                             \
-        static name##__TestRegistration name##__testRegistration = name##__TestRegistration{};                         \
+        static name##_TestRegistration name##_testRegistration = name##_TestRegistration{};                            \
       } /* namespace */                                                                                                \
-    } /* namespace __unit_tests */                                                                                     \
+    } /* namespace _unit_tests_ */                                                                                     \
     void name()
 
 #else
   #define NANO_TEST_CASE_IMPL(group, name, desc, opts, flags)                                                          \
     void name();                                                                                                       \
-    namespace __unit_tests {                                                                                           \
+    namespace _unit_tests_ {                                                                                           \
       namespace {                                                                                                      \
-        __attribute__((constructor)) static void name##__TestRegistration() {                                          \
+        __attribute__((constructor)) static void name##_TestRegistration() {                                           \
           NANO_NAMESPACE::test::manager::add_test(group, #name, desc, opts, flags, &name);                             \
         }                                                                                                              \
       } /* namespace */                                                                                                \
-    } /* namespace __unit_tests */                                                                                     \
+    } /* namespace _unit_tests_ */                                                                                     \
     void name()
 
 #endif
