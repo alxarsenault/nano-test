@@ -43,6 +43,18 @@
 #include <string>
 #include <vector>
 
+#define NANO_TEST_DEBUG_ALLOC 1
+
+#if defined(NANO_TEST_DEBUG_ALLOC) && NANO_TEST_DEBUG_ALLOC == 1
+  #define NANO_TEST_HAS_DEBUG_ALLOC
+
+  #ifdef _WIN3
+    #define _CRTDBG_MAP_ALLOC
+    #include <stdlib.h>
+    #include <crtdbg.h>
+  #endif // _WIN32
+#endif // NANO_TEST_DEBUG_ALLOC
+
 #ifndef NANO_NAMESPACE
   #define NANO_NAMESPACE nano
 #endif
@@ -100,6 +112,9 @@ NANO_TEST_CLANG_DIAGNOSTIC_POP()
 ///
 #define NANO_TEST_MAIN()                                                                                               \
   int main(int argc, const char* argv[]) { return NANO_NAMESPACE::test::run(argc, argv); }
+
+#define NANO_TEST_SAFE_MAIN()                                                                                          \
+  int main(int argc, const char* argv[]) { return NANO_NAMESPACE::test::safe_run(argc, argv); }
 
 ///
 #define NANO_TEST_ABORT_ON_ERROR 1
@@ -1133,11 +1148,14 @@ namespace test {
       inline static NANO_TEST_CONSTEXPR const char* group(std::size_t count) { return count <= 1 ? "group" : "groups"; }
     };
 
+    static inline void release_instance() {
+      manager*& ptr = get_instance_ptr();
+      delete ptr;
+      ptr = nullptr;
+    }
+
     static inline manager& get_instance() {
-      NANO_TEST_CLANG_PUSH_WARNING("-Wexit-time-destructors")
-      static manager tm;
-      return tm;
-      NANO_TEST_CLANG_POP_WARNING()
+      return *get_instance_ptr();
     }
 
     static inline state& state() { return get_instance().m_state; }
@@ -1154,7 +1172,7 @@ namespace test {
     inline static int run(int argc, const char* argv[], std::vector<check_result>& results);
 
   private:
-    inline manager() {}
+    manager() = default;
 
     test_map m_tests;
     struct state m_state;
@@ -1164,6 +1182,13 @@ namespace test {
     struct item_comparator {
       inline bool operator()(const test_item& a, const test_item& b) const { return a.name < b.name; }
     };
+
+    static inline manager*& get_instance_ptr() {
+      NANO_TEST_CLANG_PUSH_WARNING("-Wexit-time-destructors")
+      static manager* tm = new manager();
+      return tm;
+      NANO_TEST_CLANG_POP_WARNING()
+    }
   };
 
   // MARK: - Inline implementations -
@@ -1325,8 +1350,24 @@ namespace test {
 
   inline int run(int argc, const char* argv[]) { return manager::run(argc, argv); }
 
-  inline int run(int argc, const char* argv[], std::vector<nano::test::check_result>& results) {
+  inline int run(int argc, const char* argv[], std::vector<NANO_NAMESPACE::test::check_result>& results) {
     return manager::run(argc, argv, results);
+  }
+
+  inline void release() { manager::release_instance(); }
+
+  inline int safe_run(int argc, const char* argv[]) {
+    int result = manager::run(argc, argv);
+    release();
+
+#ifdef NANO_TEST_HAS_DEBUG_ALLOC
+  #ifdef _WIN32
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
+    _CrtDumpMemoryLeaks();
+  #endif // _WIN32
+#endif // NANO_TEST_HAS_DEBUG_ALLOC
+
+    return result;
   }
 } // namespace test.
 } // namespace NANO_NAMESPACE.
